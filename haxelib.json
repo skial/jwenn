@@ -1,0 +1,14 @@
+{
+  "name": "jwenn",
+  "license": "MIT",
+  "classPath": "src",
+  "tags": ["uhu", "uhx", "mo", "jwenn", "html", "css", "selector"],
+  "description": "Search HTML and JSON files with CSS selectors.",
+  "contributors": ["skial"],
+  "releasenote": "Initial Release",
+  "version": "0.0.1-alpha",
+  "url": "https://github.com/skial/jwenn",
+  "dependencies": {
+	"mo": ""
+  }
+}
