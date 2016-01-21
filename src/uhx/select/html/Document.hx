@@ -23,7 +23,7 @@ import dtx.mo.DocumentOrElement;
 		switch ((document:Token<HtmlKeywords>)) {
 			case Keyword(Tag(r)):
 				var css = Impl.parse( selector );
-				if (css != null) results = Impl.process( document, css, document );
+				if (css != null) results = new Impl().process( document, css, document );
 				
 			case _:
 				

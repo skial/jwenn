@@ -140,23 +140,31 @@ class Impl {
 	public static function find(objects:Tokens, selector:String):Array<Token<HtmlKeywords>> {
 		var css = selector.parse();
 		var results = [];
+		var impl = new Impl();
 		
-		dummyRef.tokens = objects;
+		impl.dummyRef.tokens = objects;
 		
 		/*for (object in objects) {
 			results = results.concat( process( object, css, object ) );
 		}*/
 		
-		var _t = Keyword(Tag(dummyRef));
-		results = process( _t, css, _t );
+		var _t = Keyword(Tag(impl.dummyRef));
+		results = impl.process( _t, css, _t );
 		
 		return results;
 	}
 	
-	private static var previous:CssSelectors = null;
-	private static var dummyRef:HtmlRef = new HtmlRef('!!IGNORE!!', new StringMap(), [ -1], [], null, true);
+	public var previous:CssSelectors = null;
+	public var dummyRef:HtmlRef = new HtmlRef('!!IGNORE!!', new StringMap(), [ -1], [], null, true);
 	
-	private static function process(object:Token<HtmlKeywords>, token:CssSelectors, ?ignore:Bool = false, ?negative:Bool = false, ?scope:Token<HtmlKeywords> = null):Tokens {
+	public function new() {
+		
+	}
+	
+	/*private static var previous:CssSelectors = null;
+	private static var dummyRef:HtmlRef = new HtmlRef('!!IGNORE!!', new StringMap(), [ -1], [], null, true);*/
+	
+	public function process(object:Token<HtmlKeywords>, token:CssSelectors, ?ignore:Bool = false, ?negative:Bool = false, ?scope:Token<HtmlKeywords> = null):Tokens {
 		var ref:HtmlRef = dummyRef;
 		var results:Tokens = [];
 		var children:Null<Tokens> = [];
@@ -547,7 +555,7 @@ class Impl {
 		return results;
 	}
 	
-	private static function processCombinator(original:Token<HtmlKeywords>, objects:Tokens, current:CssSelectors, type:CombinatorType, scope:Token<HtmlKeywords>):Tokens {
+	private function processCombinator(original:Token<HtmlKeywords>, objects:Tokens, current:CssSelectors, type:CombinatorType, scope:Token<HtmlKeywords>):Tokens {
 		var results = [];
 		
 		switch (type) {

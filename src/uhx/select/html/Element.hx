@@ -19,7 +19,7 @@ import uhx.lexer.Html as HtmlLexer;
 			case Keyword(Tag(r)) if (r.tokens.length > 0):
 				var css = Impl.parse( selector );
 				for (child in r.tokens) {
-					results = Impl.process( child, css, child );
+					results = new Impl().process( child, css, child );
 					// No need to continue searching HTML if a result exists, quit as soon as possible.
 					if (results.length > 0) break;
 					
@@ -39,7 +39,7 @@ import uhx.lexer.Html as HtmlLexer;
 			case Keyword(Tag(r)) if (r.tokens.length > 0):
 				var css = Impl.parse( selector );
 				for (child in r.tokens) {
-					results = results.concat( Impl.process( child, css, child ) );
+					results = results.concat( new Impl().process( child, css, child ) );
 					
 				}
 				

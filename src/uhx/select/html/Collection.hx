@@ -21,10 +21,11 @@ import dtx.mo.DocumentOrElement;
 	public static function querySelectorAll(elements:Array<DOMNode>, selector:String):Array<DOMNode> {
 		var results = [];
 		var css = Impl.parse( selector );
+		var impl = new Impl();
 		// Hacky solution for `:nth` or any selector that needs to traverse the parent
-		Impl.dummyRef.tokens = elements;
+		impl.dummyRef.tokens = elements;
 		
-		for (element in elements) results = results.concat( Impl.process( element, css, element ) );
+		for (element in elements) results = results.concat( impl.process( element, css, element ) );
 		
 		return results;
 	}
