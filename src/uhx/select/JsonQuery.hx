@@ -43,7 +43,9 @@ class JsonQuery {
 		var selectors = selector.parse();
 		var results:Array<Dynamic> = [];
 		
+		engine.original = object;
 		results = engine.process( [object], selectors, found, object );
+		engine.original = null;
 		
 		// This doesnt seem right...
 		if (results.length == 1 && Std.is(results[0], Array)) {
@@ -53,11 +55,13 @@ class JsonQuery {
 		return results;
 	}
 	
+	public var original:Dynamic = null;
+	
 	public function new() {
 		
 	}
 	
-	private function process(objects:Array<Dynamic>, token:CssSelectors, method:Method, ?parent:Dynamic = null):Array<Dynamic> {
+	private function process(objects:Array<Dynamic>, token:CssSelectors, method:Method, ?parent:Dynamic = null):Array<Any> {
 		var results = [];
 		
 		for (object in objects) {
@@ -69,17 +73,18 @@ class JsonQuery {
 					//method( object, object, results );
 					
 				case CssSelectors.Type(_.toLowerCase() => name):
-					trace( name );
+					//trace( name );
 					
 				case CssSelectors.Class(names):
 					var name = names[0];
-					var value:Dynamic = null;
-					var obj:haxe.DynamicAccess<Dynamic> = object;
+					var value:Any = null;
+					var obj:haxe.DynamicAccess<Any> = object;
 					
 					for (key in obj.keys()) {
 						value = obj.get( key );
 						
-						if (key == name) method( parent, value, results );
+						//if (key == name) method( parent, value, results );
+						if (key == name) results.push( value );
 						
 						if (value.typeof().match(TObject) || value.is(Array)) {
 							var isObj = !value.is(Array);
@@ -109,10 +114,21 @@ class JsonQuery {
 							
 						case Child: //	`>`
 							var results = [];
-							var parents = process( [object], next, JsonQuery.matched, parent );
+							/*var parents = process( [object], next, JsonQuery.matched, parent );
 							
 							for (parent in parents) {
 								for (o in childCombinator( parent, part1 )) results.push( o );
+								
+							}*/
+							var matches = process( part1, next, JsonQuery.matched, object );
+							
+							for (match in matches) {
+								for (obj in part1) {
+									var map = (obj:haxe.DynamicAccess<Any>);
+									
+									for (key in map.keys()) if (map.get( key ) == match) results.push( match );
+									
+								}
 								
 							}
 							
@@ -125,49 +141,54 @@ class JsonQuery {
 							
 						case Adjacent, General: //	`+`, //	`~`
 							//throw 'The adjacent operator `+` is not supported on dynamic (json) objects. Use the general `~` operator instead.';
-							var objs = [];
-							var values = [];
 							var results = [];
 							
-							process( [object], next, function(p, c, r) {
-								objs.push( p );
-								values.push( c );
-							}, parent );
-							
-							
-							for (i in 0...objs.length) {
-								var fields = Reflect.fields( objs[i] );
-								
-								for (j in 0...fields.length-1) {
-									var a = Reflect.field( objs[i], fields[j] );
-									var b = Reflect.field( objs[i], fields[j + 1] );
+							if (part1.length > 0) {
+								var access:haxe.DynamicAccess<Any> = object;
+								var r = process( [object], next, function(_, c, r) {}, parent );
+								for (key in access.keys()) for (v in r) if (access.get(key) == v) {
+									results.push( v );
+									break;
 									
-									if (a == values[i] && b == part1[i]) {
-										results.push( part1[i] );
-									}
 								}
 							}
 							
 							results;
 							
 						case _:
-							results;
+							[];
 							
 					}
 					
 					results = results.concat( part2 );
 					
-				case Pseudo(_.toLowerCase() => name, _.toLowerCase() => expression):
-					switch(name) {
+				case Pseudo(name, expression):
+					switch(name.toLowerCase()) {
+						case 'scope':
+							var array = (original.is(Array)?original:[original]);
+							for (a in array) results.push( a );
+							
 						case 'root':
 							var array = (object.is(Array)?object:[object]);
 							for (a in array) method( a, a, results );
 							
 						case 'first-child':
-							results = results.concat( nthChild( object, 0, 1 ) );
+							if (!(object is Array<Any>)) {
+								results = results.concat( nthChild( object, 0, 1 ) );
+								
+							} else {
+								results.push( (object:Array<Any>)[0] );
+								
+							}
 							
 						case 'last-child':
-							results = results.concat( nthChild( object, 0, 1, true ) );
+							if (!(object is Array<Any>)) {
+								results = results.concat( nthChild( object, 0, 1, true ) );
+								
+							} else {
+								results.push( (object:Array<Any>)[(object:Array<Any>).length - 1] );
+								
+							}
 							
 						case 'nth-child':
 							var a = 0;
@@ -193,25 +214,29 @@ class JsonQuery {
 							var values = nthChild( object, a, b, false, n );
 							results = results.concat( values );
 							
-						case 'has':
+						case 'has', 'not':	// TODO test `:not`
 							var r = [];
 							var e = expression.parse();
 							var m = function(p, c, r) {
 								r.push(p);
 								
 							};
-							
+							var condition = name == 'has' ? function(r) return r.length > 0 : function(r) return r.length == 0;
 							if (object.is(Array)) {
-								r = r.concat( 
-									process( object, e, m, parent )
-								);
-								
-								if (r.length > 0) {
-									results.push( parent );
+								for (obj in (object:Array<Any>)) {
+									r = process( [obj], e, m, obj );
+									
+									if (condition(r)) results.push( obj );
+									
 								}
-							}
-							
-							if (object.typeof().match(TObject)) for (name in object.fields()) {
+								/*r = r.concat( 
+									process( object, e, m, parent )
+								);*/
+								
+								/*if (r.length > 0) {
+									results.push( parent );
+								}*/
+							} else if (object.typeof().match(TObject)) for (name in object.fields()) {
 								var d:Dynamic = { };
 								var obj:Dynamic = object.field( name );
 								Reflect.setField( d, name, obj );
@@ -221,14 +246,18 @@ class JsonQuery {
 								if (r.length > 0) {
 									results.push( obj.typeof().match(TObject)? obj : d );
 								}
+								
 							}
+							
+						case 'empty':
+							
 							
 						case _:
 					}
 					
 				case Attribute(name, type, value):
-					var access:haxe.DynamicAccess<Dynamic> = object;
-					trace( name, type, value );
+					var access:haxe.DynamicAccess<Any> = object;
+					
 					if (access.exists( name )) {
 						var val = access.get( name );
 						
@@ -238,22 +267,54 @@ class JsonQuery {
 								method( object, object, results );
 								
 							case Exact: //	att=val
-								if (value == val) method( object, object, results );
+								//if (value == val) method( object, object, results );
+								if ((val is Array<Any>)) {
+									if ((val:Array<Any>).length == 1 && (val:Array<Any>)[0] == value) method( object, object, results );
+									
+								} else {
+									if (val == value) method( object, object, results );
+									
+								}
 								
 							case List: //	att~=val
-								if (value.split(' ').indexOf( val ) > -1) method( object, object, results );
+								if ((val is Array<Any>)) {
+									if ((val:Array<Any>).indexOf( value ) > -1) method( object, object, results );
+									
+								} else if ((val is String)) {
+									if ((val:String).indexOf( value ) > -1) method( object, object, results );
+									
+								}
+								//if (value.split(' ').indexOf( val ) > -1) method( object, object, results );
 								
 							case DashList: //	att|=val
 								if (value.split('-').indexOf( val ) > -1) method( object, object, results );
 								
 							case Prefix: //	att^=val
-								if (value.startsWith( val )) method( object, object, results );
+								if ((val is String)) {
+									if ((val:String).startsWith( value )) method( object, object, results );
+									
+								} else if ((val is Array<Any>)) {
+									if ((val:Array<Any>)[0] != null && (val:Array<Any>)[0] == value) method( object, object, results );
+									
+								}
 								
 							case Suffix: //	att$=val
-								if (value.endsWith( val )) method( object, object, results );
+							if ((val is String)) {
+								if ((val:String).endsWith( value )) method( object, object, results );
+								
+							} else if ((val is Array<Any>)) {
+								if ((val:Array<Any>)[(val:Array<Any>).length - 1] != null && (val:Array<Any>)[(val:Array<Any>).length -1] == value) method( object, object, results );
+								
+							}
 								
 							case Contains: //	att*=val
-								if (value.indexOf( val ) > -1) method( object, object, results );
+								if ((val is Array<Any>)) {
+									if ((val:Array<Any>).indexOf( value ) > -1) method( object, object, results );
+									
+								} else if ((val is String)) {
+									if ((val:String).indexOf( value ) > -1) method( object, object, results );
+									
+								}
 								
 							case _:
 								
@@ -270,7 +331,7 @@ class JsonQuery {
 		return results;
 	}
 	
-	private function nthChild(object:Dynamic, a:Int, b:Int, reverse:Bool = false, neg:Bool = false):Array<Dynamic> {
+	private function nthChild(object:Dynamic, a:Int, b:Int, reverse:Bool = false, neg:Bool = false):Array<Any> {
 		var results = [];
 		var fields = object.fields();
 		
@@ -283,13 +344,13 @@ class JsonQuery {
 				
 			} else if (obj.is(Array)) {
 				var n = 0;
-				var len = (obj:Array<Dynamic>).length;
+				var len = (obj:Array<Any>).length;
 				var idx = (a * (neg? -n : n)) + b - 1;
 				var values = [];
 				
 				if (reverse) {
-					obj = (obj:Array<Dynamic>).copy();
-					(obj:Array<Dynamic>).reverse();
+					obj = (obj:Array<Any>).copy();
+					(obj:Array<Any>).reverse();
 				}
 				
 				while ( n < len && idx < len ) {
