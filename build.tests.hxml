@@ -1,0 +1,16 @@
+-cp src
+-cp tests
+
+-lib jwenn
+
+-main Main
+
+-debug
+
+--each
+
+-neko bin/spec.n
+
+--next
+
+-js bin/spec.js
