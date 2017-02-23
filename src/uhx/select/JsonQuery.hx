@@ -52,7 +52,7 @@ abstract DA<T, O, K>({iterator:Void->Iterator<T>, self:O, keys:Array<K>, get:K->
 		return new DA( cast new DynamicAccessWrapper(v) );
 	}
 	
-	@:from public static function fromDynamic<T>(v:Dynamic):DA<T, Dynamic, Array<String>> {
+	@:from public static function fromDynamic<T>(v:Dynamic):DA<T, DynamicAccess<T>, Array<String>> {
 		return new DA( cast new DynamicAccessWrapper(v) );
 	}
 	
@@ -172,7 +172,7 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [-] `:disabled`
 - [-] `:checked`
 - [-] `:indeterminate`
-- [ ] `:root`
+- [x] `:root`
 - [ ] `:nth-child(even)`
 - [ ] `:nth-child(odd)`
 - [ ] `:nth-child(n)`
@@ -243,7 +243,8 @@ class JsonQuery {
 		if (selectors == null) return results;
 		
 		engine.original = object;
-		results = engine.process( cast DA.fromDynamicAccess(object), selectors, found, object );
+		var da = DA.fromDynamic(object);
+		results = engine.process( cast da, selectors, found, object );
 		engine.original = null;
 		
 		// This doesnt seem right...
@@ -338,7 +339,9 @@ class JsonQuery {
 					if (part1.length != 0) {
 						var part2 = switch (type) {
 							case None: // Used in `type.class`, `type:pseudo` and `type[attribute]`
-								process( cast DA.fromArray(part1), next, JsonQuery.exact, parent );
+								var r = [];
+								for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, JsonQuery.exact, parent )) r.push( result );
+								r;
 								
 							case Child: //	`>`
 								var r = [];
@@ -390,13 +393,11 @@ class JsonQuery {
 								for (a in array) results.push( a );
 								
 							case 'root':
-								var array:Array<DynamicAccess<Any>> = (isArray ? cast object : cast [object]);
-								//for (a in array) method( a, a, results );
-								for (a in array) method( '', -1, a, a, results );
+								if (isObject) if (object.self == original) method( '', -1, object.self, object.self, results );
 								
 							case 'first-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( cast object, 0, 1 ) );
+									results = results.concat( cast nthChild( object, 0, 1, isObject, isArray ) );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -406,7 +407,7 @@ class JsonQuery {
 								
 							case 'last-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( cast object, 0, 1, true ) );
+									results = results.concat( cast nthChild( object, 0, 1, isObject, isArray, true ) );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -430,12 +431,12 @@ class JsonQuery {
 									case _:
 										var ab = nthValues( expression );
 										a = ab[0];
-										b = ab[1];
+										b = ab[1] != null ? ab[1] : b;
 										n = expression.indexOf('-n') > -1;
 										
 								}
 								
-								var values = nthChild( cast object, a, b, false, n );
+								var values = nthChild( object, a, b, isObject, isArray, false, n );
 								results = results.concat( cast values );
 								
 							case 'has', 'not':	// TODO test `:not`
@@ -450,9 +451,6 @@ class JsonQuery {
 								trace( matches );
 								
 								if (condition(matches)) results.push( object );
-								
-							case 'empty':
-								
 								
 							case _:
 						}
@@ -559,70 +557,20 @@ class JsonQuery {
 		return cast results;
 	}
 	
-	private function nthChild(object:DynamicAccess<Any>, a:Int, b:Int, reverse:Bool = false, neg:Bool = false):Array<DynamicAccess<Any>> {
+	private function nthChild(object:DA<Any, Dynamic, Array<Any>>, a:Int, b:Int, isObject:Bool, isArray:Bool, reverse:Bool = false, neg:Bool = false):Array<Any> {
 		var results = [];
-		var fields = object.fields();
 		
-		if (object.typeof().match(TObject)) for (i in 0...fields.length) {
-			var obj:Dynamic = object.field( fields[i] );
-			
-			if (obj.typeof().match(TObject)) {
-				var values = nthChild( obj, a, b, reverse, neg );
-				results = results.concat( values );
+		trace(a, b, neg, object.keys().length );
+		for (n in 0...object.keys().length) {
+			var idx = (a * n) + b;
+			trace( idx );
+			idx--;
+			if (idx > -1 && idx < object.keys().length) {
+				results.push( object.get( object.keys()[idx] ) );
 				
-			} else if (obj.is(Array)) {
-				var n = 0;
-				var len = (obj:Array<Any>).length;
-				var idx = (a * (neg? -n : n)) + b - 1;
-				var values = [];
+			} else {
+				//break;
 				
-				if (reverse) {
-					obj = (obj:Array<Any>).copy();
-					(obj:Array<Any>).reverse();
-				}
-				
-				while ( n < len && idx < len ) {
-					if (idx > -1) {
-						values.push( obj[idx] );
-					}
-					
-					if (a == 0 && !neg) break;
-					
-					n++;
-					idx = (a == 0 && neg? -n:(a * (neg? -n : n))) + b - 1;
-				}
-				
-				if (values.length > 0) {
-					if (neg) values.reverse();
-					results = results.concat( values );
-				}
-				
-			}
-			
-		} else if (Std.is(object,Array)) {
-			var array:Array<Any> = cast object;
-			var n = 0;
-			var len = array.length;
-			var idx = (a * (neg? -n : n)) + b - 1;
-			var values:Array<DynamicAccess<Any>> = [];
-			
-			if (reverse) {
-				array = array.copy();
-				array.reverse();
-			}
-			
-			while ( n < len && idx < len ) {
-				if (idx > -1) {
-					values.push( array[idx] );
-				}
-				
-				n++;
-				idx++;
-			}
-			
-			if (values.length > 0) {
-				if (neg) values.reverse();
-				results = results.concat( values );
 			}
 			
 		}

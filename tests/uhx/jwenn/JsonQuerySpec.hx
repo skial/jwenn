@@ -296,4 +296,36 @@ class JsonQuerySpec {
 		Assert.equals( '' + data.c, '' + results[0] );
 	}
 	
+	public function testPseudo_root() {
+		var data = { a:1, b:2 };
+		var results = JsonQuery.find( data, ':root' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data, '' + results[0] );
+	}
+	
+	public function testPseudo_nthChild_everyThirdItem() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-child(3n+3)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data.c, '' + results[0] );
+	}
+	
+	public function testPseudo_nthChild_odd() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-child(odd)' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + [data.a, data.c], '' + results );
+	}
+	
+	public function testPseudo_nthChild_even() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-child(even)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data.b, '' + results[0] );
+	}
+	
 }
