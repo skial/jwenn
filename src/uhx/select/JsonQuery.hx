@@ -217,25 +217,14 @@ class JsonQuery {
 		return new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
 	}
 	
-	/*private static function exact(parent:Dynamic, child:Dynamic, results:Array<Dynamic>) {
-		results.push( child );
-	}*/
 	private static function exact(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
 		results.push( value );
 	}
 	
-	/*private static function matched(parent:Dynamic, child:Dynamic, results:Array<Dynamic>) {
-		if (results.indexOf( parent ) == -1) {
-			results.push( parent );
-		}
-	}*/
 	private static function matched(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
 		if (results.indexOf( parent ) == -1) results.push( parent );
 	}
 	
-	/*private static function found(parent:Dynamic, child:Dynamic, results:Array<Dynamic>) {
-		results.push( child );
-	}*/
 	private static function found(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
 		results.push( value );
 	}
@@ -245,9 +234,6 @@ class JsonQuery {
 		method( key, index, value, parent, results );
 	}
 	
-	/*private static function filter(parent:Dynamic, child:Dynamic, results:Array<Dynamic>) {
-		//untyped console.log( results );
-	}*/
 	
 	public static function find(object:Dynamic, selector:String):Array<Dynamic> {
 		var selectors = selector.parse();
@@ -279,48 +265,40 @@ class JsonQuery {
 		var results = [];
 		var passable = false;
 		
-		//for (object in objects) {
-			var isArray = object.self.is(Array);
-			var isObject = object.self.typeof().match(TObject);
+		var isArray = object.self.is(Array);
+		var isObject = object.self.typeof().match(TObject);
+		
+		if (isArray || isObject) {
+			var asArray:Array<DynamicAccess<Any>> = isArray ? cast object.self : [];
 			
-			if (isArray || isObject) {
-				var asArray:Array<DynamicAccess<Any>> = isArray ? cast object.self : [];
-				
-				switch(token) {
-					case Universal:
+			switch(token) {
+				case Universal:
 						passable = true;
-						//method(parent, object.self, results);
 						method('', -1, object.self, parent, results);
-						
-					case CssSelectors.Type(_.toLowerCase() => name):
+					
+				case CssSelectors.Type(_.toLowerCase() => name):
 						passable = true;
 						var value:Any = null;
 						if (isObject) for (i in 0...object.keys().length) {
 							var key = object.keys()[i];
-							//trace( name, key, object, asObject.get(key), asObject.get(key).typeof() );
+							
 							switch [name, (value = object.get(key)).typeof()] {
 								case ['int', TInt]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case ['float', TFloat]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case ['bool', TBool]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case ['object', TObject]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case ['string', TClass(String)]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case ['array', TClass(Array)]:
-									//method(parent, value, results);
 									method( key, i, value, parent, results );
 									
 								case _:
@@ -328,8 +306,8 @@ class JsonQuery {
 							}
 							
 						}
-						
-					case CssSelectors.Class(names):
+					
+				case CssSelectors.Class(names):
 						var name = names[0];
 						var value:String = null;
 						passable = true;
@@ -338,35 +316,32 @@ class JsonQuery {
 							var key = object.keys()[i];
 							value = object.get( key );
 							
-							//if (name == cast key) method(parent, value, results);
 							if (name == cast key) method( key, i, value, parent, results );
 							
 						}
-						
-					case Group(selectors): 
+					
+				case Group(selectors): 
 						for (selector in selectors) {
 							for (o in process( object, selector, JsonQuery.found, parent )) {
-								//method(parent, o, results);
 								method( '', -1, o, parent, results );
 								
 							}
 							
 						}
-						
-					case Combinator(current, next, type):
-						var indexes = [];
-						var m = JsonQuery.track.bind(_, _, _, _, _, _, method);
-						// Browser css selectors are read from `right` to `left`, but this isnt a browser.
-						var part1 = process( object, current, m.bind(_, _, _, _, _, indexes), parent );
-						
-						//if (part1.length == 0) continue;
+					
+				case Combinator(current, next, type):
+					var indexes = [];
+					var m = JsonQuery.track.bind(_, _, _, _, _, _, method);
+					// Browser css selectors are read from `right` to `left`, but this isnt a browser.
+					var part1 = process( object, current, m.bind(_, _, _, _, _, indexes), parent );
+					
+					if (part1.length != 0) {
 						var part2 = switch (type) {
 							case None: // Used in `type.class`, `type:pseudo` and `type[attribute]`
 								process( cast DA.fromArray(part1), next, JsonQuery.exact, parent );
 								
 							case Child: //	`>`
 								var r = [];
-								//var m = function(p, v, r) if (p == object.self) r.push(v);
 								var m = function(k, i, v, p, r) if (p == object.self) r.push( v );
 								
 								for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, m, object.self )) r.push( result );
@@ -406,7 +381,9 @@ class JsonQuery {
 						
 						results = results.concat( cast part2 );
 						
-					case Pseudo(name, expression):
+					}
+					
+				case Pseudo(name, expression):
 						switch(name.toLowerCase()) {
 							case 'scope':
 								var array = (original.is(Array)?original:[original]);
@@ -479,115 +456,97 @@ class JsonQuery {
 								
 							case _:
 						}
+					
+				case Attribute(name, type, value):
+					if (isArray) passable = true;
+					if (isObject && object.exists( cast name )) {
+						var val = object.get( cast name );
+						var isValObject = val.typeof().match(TObject);
+						var isValArray = val.is(Array);
+						var isValString = val.is(String);
+						var asValArray:Array<Any> = isValArray ? cast val : [];
+						var asValString:String = isValString ? cast val : '';
 						
-					case Attribute(name, type, value):
-						if (isArray) passable = true;
-						if (isObject && object.exists( cast name )) {
-							var val = object.get( cast name );
-							var isValObject = val.typeof().match(TObject);
-							var isValArray = val.is(Array);
-							var isValString = val.is(String);
-							var asValArray:Array<Any> = isValArray ? cast val : [];
-							var asValString:String = isValString ? cast val : '';
-							
-							isValArray = asValArray.length > 0;
-							
-							var arrayType = isValArray ? asValArray[0].typeof() : TUnknown;
-							
-							//isValArray = isValArray && (arrayType.match(TInt) || arrayType.match(TClass(String)));
-							
-							switch type {
-								// Assume its just matching against an attribute name, not the value.
-								case Unknown:
-									//method( object.self, object.self, results );
+						isValArray = asValArray.length > 0;
+						
+						var arrayType = isValArray ? asValArray[0].typeof() : TUnknown;
+						
+						switch type {
+							// Assume its just matching against an attribute name, not the value.
+							case Unknown:
+								method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
+								
+							case Exact: //	att=val
+								if (isValArray && asValArray.length == 1 && asValArray[0] == value) {
 									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case Exact: //	att=val
-									//if (value == val) method( object, object, results );
-									if (isValArray && asValArray.length == 1 && asValArray[0] == value) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									} else if (val == value) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
+								} else if (val == value) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case List: //	att~=val
-									if (isValArray && asValArray.indexOf( arrayType.match(TInt) ? Std.parseInt(value) : value ) > -1) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									} else if (isValString && asValString.indexOf( value ) > -1) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
-									//if (value.split(' ').indexOf( val ) > -1) method( object, object, results );
+								}
+								
+							case List: //	att~=val
+								if (isValArray && asValArray.indexOf( arrayType.match(TInt) ? Std.parseInt(value) : value ) > -1) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case DashList: //	att|=val
-									if (isValString && asValString.split('-').indexOf( value ) > -1) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
+								} else if (isValString && asValString.indexOf( value ) > -1) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case Prefix: //	att^=val
-									if (isValString && asValString.startsWith( value )) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									} else if (isValArray && asValArray[0] == (arrayType.match(TInt) ? Std.parseInt(value) : value)) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
+								}
+								
+							case DashList: //	att|=val
+								if (isValString && asValString.split('-').indexOf( value ) > -1) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case Suffix: //	att$=val
-									if (isValString && asValString.endsWith( value )) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									} else if (isValArray && asValArray[asValArray.length -1] == (arrayType.match(TInt) ? Std.parseInt(value) : value)) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
+								}
+								
+							case Prefix: //	att^=val
+								if (isValString && asValString.startsWith( value )) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case Contains: //	att*=val
-									if (isValArray && asValArray.indexOf( (arrayType.match(TInt) ? Std.parseInt(value) : value) ) > -1) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									} else if (isValString && asValString.indexOf( value ) > -1) {
-										//method( object.self, object.self, results );
-										method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
-										
-									}
+								} else if (isValArray && asValArray[0] == (arrayType.match(TInt) ? Std.parseInt(value) : value)) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-								case _:
+								}
+								
+							case Suffix: //	att$=val
+								if (isValString && asValString.endsWith( value )) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
 									
-							}
-							
+								} else if (isValArray && asValArray[asValArray.length -1] == (arrayType.match(TInt) ? Std.parseInt(value) : value)) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
+									
+								}
+								
+							case Contains: //	att*=val
+								if (isValArray && asValArray.indexOf( (arrayType.match(TInt) ? Std.parseInt(value) : value) ) > -1) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
+									
+								} else if (isValString && asValString.indexOf( value ) > -1) {
+									method( cast name, object.keys().indexOf(cast name), object.self, object.self, results );
+									
+								}
+								
+							case _:
+								
 						}
 						
-					case _:
-						
-				}
-				
-				if (passable) for (o in object) {	
-					var isArray = o.is(Array);
-					var isObject = o.typeof().match(TObject);
-					var asArray:Array<Any> = isArray ? cast o : [];
+					}
 					
-					if (isArray || isObject) {
-						var da:DA<Any, Dynamic, Array<Any>> = isArray ? cast DA.fromArray(asArray) : isObject ? cast DA.fromDynamicAccess(cast o) : cast DA.fromDynamic(cast o);
-						
-						for (result in process( da, token, method, object.self ) ) {
-							results.push( cast result );
-							
-						}
+				case _:
+					
+			}
+			
+			if (passable) for (o in object) {	
+				var isArray = o.is(Array);
+				var isObject = o.typeof().match(TObject);
+				var asArray:Array<Any> = isArray ? cast o : [];
+				
+				if (isArray || isObject) {
+					var da:DA<Any, Dynamic, Array<Any>> = isArray ? cast DA.fromArray(asArray) : isObject ? cast DA.fromDynamicAccess(cast o) : cast DA.fromDynamic(cast o);
+					
+					for (result in process( da, token, method, object.self ) ) {
+						results.push( cast result );
 						
 					}
 					
@@ -595,7 +554,7 @@ class JsonQuery {
 				
 			}
 			
-		//}
+		}
 		
 		return cast results;
 	}
