@@ -416,7 +416,7 @@ class JsonQuery {
 								}
 								
 							case 'nth-child':
-								var a = 0;
+								var a = 1;
 								var b = 0;
 								var n = false;
 								
@@ -430,7 +430,7 @@ class JsonQuery {
 										
 									case _:
 										var ab = nthValues( expression );
-										a = ab[0];
+										a = ab[0] > 0 ? ab[0] : 1;
 										b = ab[1] != null ? ab[1] : b;
 										n = expression.indexOf('-n') > -1;
 										
@@ -559,13 +559,15 @@ class JsonQuery {
 	
 	private function nthChild(object:DA<Any, Dynamic, Array<Any>>, a:Int, b:Int, isObject:Bool, isArray:Bool, reverse:Bool = false, neg:Bool = false):Array<Any> {
 		var results = [];
+		var length = object.keys().length;
 		
-		trace(a, b, neg, object.keys().length );
-		for (n in 0...object.keys().length) {
-			var idx = (a * n) + b;
-			trace( idx );
+		//trace(a, b, neg, reverse, length );
+		
+		for (n in 0...length) {
+			var idx = (a * (neg ? -n : n)) + b;
+			//trace( a, (neg ? -n : n), b, (a * (neg ? -n : n)), idx );
 			idx--;
-			if (idx > -1 && idx < object.keys().length) {
+			if (idx > -1 && idx < length) {
 				results.push( object.get( object.keys()[idx] ) );
 				
 			} else {

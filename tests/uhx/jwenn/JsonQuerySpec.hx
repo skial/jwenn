@@ -312,6 +312,22 @@ class JsonQuerySpec {
 		Assert.equals( '' + data.c, '' + results[0] );
 	}
 	
+	public function testPseudo_nthChild_everyThirdItem_simple() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-child(3n)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data.c, '' + results[0] );
+	}
+	
+	public function testPseudo_nthChild_everyItem_reversed() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-child(-n+3)' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + [data.c, data.b, data.a], '' + results );
+	}
+	
 	public function testPseudo_nthChild_odd() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-child(odd)' );
