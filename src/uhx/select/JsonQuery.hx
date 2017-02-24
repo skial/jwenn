@@ -173,9 +173,9 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [-] `:checked`
 - [-] `:indeterminate`
 - [x] `:root`
-- [ ] `:nth-child(even)`
-- [ ] `:nth-child(odd)`
-- [ ] `:nth-child(n)`
+- [x] `:nth-child(even)`
+- [x] `:nth-child(odd)`
+- [x] `:nth-child(n)`
 - [ ] `:nth-last-child`
 - [ ] `:nth-of-type`
 - [ ] `:nth-last-of-type`
@@ -416,7 +416,8 @@ class JsonQuery {
 								}
 								
 							case 'nth-child':
-								var a = 1;
+								// @see https://www.w3.org/TR/css3-selectors/#nth-child-pseudo
+								var a = 0;
 								var b = 0;
 								var n = false;
 								
@@ -430,14 +431,28 @@ class JsonQuery {
 										
 									case _:
 										var ab = nthValues( expression );
-										a = ab[0] > 0 ? ab[0] : 1;
-										b = ab[1] != null ? ab[1] : b;
+										switch ab.length {
+											case 1:
+												b = ab[0];
+												
+											case _:
+												a = ab[0] > 0 ? ab[0] : 1;
+												b = ab[1] != null ? ab[1] : b;
+												
+										}
 										n = expression.indexOf('-n') > -1;
 										
 								}
 								
-								var values = nthChild( object, a, b, isObject, isArray, false, n );
-								results = results.concat( cast values );
+								if (a > 0) {
+									var values = nthChild( object, a, b, isObject, isArray, false, n );
+									results = results.concat( values );
+									
+								} else if (b > 0) {
+									// single value `:nth-child(5)`
+									results.push( object.get( object.keys()[b-1] ) );
+									
+								}
 								
 							case 'has', 'not':	// TODO test `:not`
 								var expression = expression.parse();
@@ -565,13 +580,10 @@ class JsonQuery {
 		
 		for (n in 0...length) {
 			var idx = (a * (neg ? -n : n)) + b;
-			//trace( a, (neg ? -n : n), b, (a * (neg ? -n : n)), idx );
+			//trace( 'a = $a', 'n = ' +(neg ? -n : n), 'b = $b', 'calc = ' + (a * (neg ? -n : n)), 'idx = $idx' );
 			idx--;
 			if (idx > -1 && idx < length) {
 				results.push( object.get( object.keys()[idx] ) );
-				
-			} else {
-				//break;
 				
 			}
 			
