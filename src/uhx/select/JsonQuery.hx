@@ -59,7 +59,7 @@ abstract DA<T, O, K>({iterator:Void->Iterator<T>, self:O, keys:Array<K>, get:K->
 	
 }
 
-private class DynamicAccessWrapper<T> {
+@:keep private class DynamicAccessWrapper<T> {
 	
 	private var index = 0;
 	public var length = 0;
@@ -100,7 +100,7 @@ private class DynamicAccessWrapper<T> {
 	
 }
 
-private class ArrayWrapper<T> {
+@:keep private class ArrayWrapper<T> {
 	
 	public var length:Int;
 	public var self:Array<T>;
@@ -245,8 +245,7 @@ class JsonQuery {
 		if (selectors == null) return results;
 		
 		engine.original = object;
-		var da = DA.fromDynamic(object);
-		results = engine.process( cast da, selectors, found, object );
+		results = engine.process( cast DA.fromDynamic(object), selectors, found, object );
 		engine.original = null;
 		
 		// This doesnt seem right...
@@ -272,8 +271,6 @@ class JsonQuery {
 		var isObject = object.self.typeof().match(TObject);
 		
 		if (isArray || isObject) {
-			var asArray:Array<DynamicAccess<Any>> = isArray ? cast object.self : [];
-			
 			switch(token) {
 				case Universal:
 						passable = true;
@@ -384,7 +381,7 @@ class JsonQuery {
 								
 						}
 						
-						results = results.concat( cast part2 );
+						for (value in part2) results.push( value );
 						
 					}
 					
@@ -399,7 +396,7 @@ class JsonQuery {
 								
 							case 'first-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( object, 0, 1 ) );
+									for (value in nthChild( object, 0, 1 )) results.push( value );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -409,7 +406,7 @@ class JsonQuery {
 								
 							case 'last-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( object, 0, 1, true ) );
+									for (value in nthChild( object, 0, 1, true )) results.push( value );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -530,7 +527,7 @@ class JsonQuery {
 					
 			}
 			
-			if (passable) for (o in object) {	
+			if (passable) for (o in object.toIterator()) {	
 				var isArray = o.is(Array);
 				var isObject = o.typeof().match(TObject);
 				var asArray:Array<Any> = isArray ? cast o : [];
@@ -572,24 +569,6 @@ class JsonQuery {
 				
 			}
 			
-		}
-		
-		return results;
-	}
-	
-	private function childCombinator(object:Dynamic, values:Array<Dynamic>):Array<Dynamic> {
-		var results = [];
-		
-		if (object.is(Array)) for (o in (object:Array<Dynamic>)) {
-			results = results.concat( childCombinator( o, values ) );
-		}
-		
-		if (object.typeof().match(TObject)) for (name in object.fields()) {
-			for (v in values) if (object.field( name ) == v) {
-				results.push( v );
-				values.remove( v );
-				break;
-			}
 		}
 		
 		return results;

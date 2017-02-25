@@ -6,7 +6,7 @@ import utest.ui.Report;
 
 class Main {
 	
-	public static function main() {
+	@:keep public static function main() {
 		var runner = new Runner();
 		runner.addCase(new JsonQuerySpec());
 		Report.create(runner);

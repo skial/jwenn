@@ -4,7 +4,8 @@
 -lib jwenn
 
 -main Main
-
+-dce full
+#--no-inline
 -debug
 
 --each
