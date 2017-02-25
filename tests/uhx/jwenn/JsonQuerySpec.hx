@@ -368,4 +368,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.b, data.a], '' + results );
 	}
 	
+	public function testPseudo_nthLastChild_last() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-last-child(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.c], '' + results );
+	}
+	
+	public function testPseudo_nthLastChild_lastComplex() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-last-child(0n+1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.c], '' + results );
+	}
+	
+	public function testPseudo_nthLastChild_lastComplex_negative() {
+		var data = { a:1, b:2, c:3 };
+		var results = JsonQuery.find( data, ':nth-last-child(-0n+1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.c], '' + results );
+	}
+	
 }

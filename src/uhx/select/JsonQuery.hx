@@ -2,6 +2,7 @@ package uhx.select;
 
 import byte.ByteData;
 import haxe.DynamicAccess;
+import uhx.parser.NthExpression;
 import uhx.lexer.Css as CssLexer;
 import uhx.lexer.Css.CssSelectors;
 import uhx.parser.Selector as SelectorParser;
@@ -176,7 +177,7 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [x] `:nth-child(even)`
 - [x] `:nth-child(odd)`
 - [x] `:nth-child(n)`
-- [ ] `:nth-last-child`
+- [x] `:nth-last-child`
 - [ ] `:nth-of-type`
 - [ ] `:nth-last-of-type`
 - [ ] `:last-child`
@@ -212,6 +213,7 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 class JsonQuery {
 	
 	private static var engine:JsonQuery = new JsonQuery();
+	private static var nthEngine:NthExpression = new NthExpression();
 	
 	private static inline function parse(selector:String):CssSelectors {
 		return new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
@@ -387,7 +389,7 @@ class JsonQuery {
 					}
 					
 				case Pseudo(name, expression):
-						switch(name.toLowerCase()) {
+						switch name = name.toLowerCase() {
 							case 'scope':
 								var array = (original.is(Array)?original:[original]);
 								for (a in array) results.push( a );
@@ -397,7 +399,7 @@ class JsonQuery {
 								
 							case 'first-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( object, 0, 1, isObject, isArray ) );
+									results = results.concat( cast nthChild( object, 0, 1 ) );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -407,7 +409,7 @@ class JsonQuery {
 								
 							case 'last-child':
 								if (!isArray) {
-									results = results.concat( cast nthChild( object, 0, 1, isObject, isArray, true ) );
+									results = results.concat( cast nthChild( object, 0, 1, true ) );
 									
 								} else {
 									var v:Array<DynamicAccess<Any>> = cast object;
@@ -415,43 +417,21 @@ class JsonQuery {
 									
 								}
 								
-							case 'nth-child':
+							case 'nth-child', 'nth-last-child':
 								// @see https://www.w3.org/TR/css3-selectors/#nth-child-pseudo
-								var a = 0;
-								var b = 0;
-								var n = false;
-								
-								switch (expression) {
-									case 'odd':
-										a = 2;
-										b = 1;
-										
-									case 'even':
-										a = 2;
+								var r = name.indexOf('last') > - 1;
+								var token = nthEngine.toTokens( ByteData.ofString( expression ), 'jsonquery-nth' );
+								//trace(token);
+								switch token {
+									case Index(b):
+										results.push( object.get( object.keys()[!r ? b-1 : object.keys().length - b] ) );
+									
+									case Notation(a, b, isNegative):
+										var values = nthChild( object, a, b, r, isNegative );
+										for (value in values) results.push( value );
 										
 									case _:
-										var ab = nthValues( expression );
-										switch ab.length {
-											case 1:
-												b = ab[0];
-												
-											case _:
-												a = ab[0] > 0 ? ab[0] : 1;
-												b = ab[1] != null ? ab[1] : b;
-												
-										}
-										n = expression.indexOf('-n') > -1;
 										
-								}
-								
-								if (a > 0) {
-									var values = nthChild( object, a, b, isObject, isArray, false, n );
-									results = results.concat( values );
-									
-								} else if (b > 0) {
-									// single value `:nth-child(5)`
-									results.push( object.get( object.keys()[b-1] ) );
-									
 								}
 								
 							case 'has', 'not':	// TODO test `:not`
@@ -572,58 +552,25 @@ class JsonQuery {
 		return cast results;
 	}
 	
-	private function nthChild(object:DA<Any, Dynamic, Array<Any>>, a:Int, b:Int, isObject:Bool, isArray:Bool, reverse:Bool = false, neg:Bool = false):Array<Any> {
+	private function nthChild(object:DA<Any, Dynamic, Array<Any>>, a:Int, b:Int, reverse:Bool = false, neg:Bool = false):Array<Any> {
 		var results = [];
-		var length = object.keys().length;
+		var keys = object.keys();
+		var length = keys.length;
+		var syek = keys.copy();
+		syek.reverse();
 		
-		//trace(a, b, neg, reverse, length );
+		//trace( a, b, a+0+b,'neg = $neg', 'reverse = $reverse', length );
 		
 		for (n in 0...length) {
+			var n = n;
 			var idx = (a * (neg ? -n : n)) + b;
-			//trace( 'a = $a', 'n = ' +(neg ? -n : n), 'b = $b', 'calc = ' + (a * (neg ? -n : n)), 'idx = $idx' );
 			idx--;
+			//trace( 'a = $a', 'n = ' +(neg ? -n : n), 'b = $b', 'calc = ' + (a * (neg ? -n : n)), 'idx = $idx'  );
 			if (idx > -1 && idx < length) {
-				results.push( object.get( object.keys()[idx] ) );
+				//trace( !reverse ? keys[idx] : syek[idx] );
+				results.push( object.get( !reverse ? keys[idx] : syek[idx] ) );
 				
 			}
-			
-		}
-		
-		return results;
-	}
-	
-	private function nthValues(expr:String):Array<Int> {
-		var results:Array<Int> = [];
-		
-		if (expr.indexOf('n') > -1) {
-			for (s in expr.split('n')) {
-				results = results.concat( nthValues( s ) );
-			}
-		}
-		
-		if (results.length < 2) {
-			
-			var code = 0;
-			var index = 0;
-			var value = '0';
-			var isFalse = false;
-			
-			while (index < expr.length) {
-				code = expr.charCodeAt( index );
-				
-				switch (code) {
-					case '-'.code: isFalse = true;
-					case '+'.code: isFalse = false;
-					case x if (x >= '0'.code && x <= '9'.code):
-						value += String.fromCharCode( x );
-						
-					case _:
-				}
-				
-				index++;
-			}
-			
-			results.push( isFalse ? -Std.parseInt( value ) : Std.parseInt( value ) );
 			
 		}
 		
