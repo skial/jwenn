@@ -155,8 +155,8 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [x] `[name|="value"]`
 - [x] `[attr1=value][attr2|="123"][attr3*="bob"]`
 # Level 2 - http://www.w3.org/TR/CSS21/selector.html
-- [ ] `:custom-pseudo`
-- [ ] `:first-child`
+- [-] `:custom-pseudo`
+- [x] `:first-child`
 - [-] `:link`
 - [-] `:visited`
 - [-] `:hover`
@@ -178,14 +178,14 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [x] `:nth-child(odd)`
 - [x] `:nth-child(n)`
 - [x] `:nth-last-child`
-- [ ] `:nth-of-type`
-- [ ] `:nth-last-of-type`
-- [ ] `:last-child`
-- [ ] `:first-of-type`
-- [ ] `:last-of-type`
-- [ ] `:only-child`
-- [ ] `:only-of-type`
-- [ ] `:empty`
+- [x] `:nth-of-type`
+- [x] `:nth-last-of-type`
+- [x] `:last-child`
+- [x] `:first-of-type`
+- [x] `:last-of-type`
+- [x] `:only-child`
+- [x] `:only-of-type`
+- [/] `:empty`
 - [ ] `:not(selector)`
 # Level 4 - http://dev.w3.org/csswg/selectors4/
 - [ ] `:matches`
@@ -216,7 +216,8 @@ class JsonQuery {
 	private static var nthEngine:NthExpression = new NthExpression();
 	
 	private static inline function parse(selector:String):CssSelectors {
-		return new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
+		var s = new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
+		return s;
 	}
 	
 	private static function exact(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
@@ -336,102 +337,101 @@ class JsonQuery {
 					var part1 = process( object, current, m.bind(_, _, _, _, _, indexes), parent );
 					
 					if (part1.length != 0) {
-						var part2 = switch (type) {
-							case None: // Used in `type.class`, `type:pseudo` and `type[attribute]`
-								var r = [];
-								for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, JsonQuery.exact, parent )) r.push( result );
-								r;
+						var invoke:Method->Array<Any>->Void = if (part1[0].typeof().match(TObject)) {	// Don't assume every value returned is an object. BREAK POINT
+							function (m:Method, r:Array<Any>) for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, m, parent )) r.push( result );
+							
+						} else {
+							function(m:Method, r:Array<Any>) for (result in process( cast DA.fromArray(part1), next, m, parent )) r.push( result );
+							
+						}
+						
+						var r = [];
+						switch type {
+							case None: // Used in `type.class`, `type:pseudo`, `type[attribute]` and :pseudo:pseudo
+								// This feels wrong...
+								switch token {
+									case Combinator(Pseudo(_, _), Pseudo(_, _), _) | Combinator(Attribute(_, _, _), Attribute(_, _, _), _):
+										var results = process( object, next, method, parent );
+										/*trace( current, next );
+										trace( part1, results );*/
+										for (result in results) if (part1.indexOf(result) > -1) r.push( cast result );
+										
+									case _:
+										invoke(method, r);
+										
+								}
 								
 							case Child: //	`>`
-								var r = [];
 								var m = function(k, i, v, p, r) if (p == object.self) r.push( v );
-								
-								for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, m, object.self )) r.push( result );
-								r;
+								invoke(m, r);
 								
 							case Descendant: //	` `
-								var r = [];
-								for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, method, parent )) r.push( result );
-								r;
+								invoke(method, r);
 								
 							case Adjacent: //	`+`
-								var r = [];
 								var idxs = [];
 								
-								for (result in process( object, next, m.bind(_, _, _, _, _, idxs), object.self )) r.push( result );
+								for (result in process( object, next, m.bind(_, _, _, _, _, idxs), object.self )) r.push( cast result );
 								
-								[for (i in 0...r.length) {
+								r = [for (i in 0...r.length) {
 									if (indexes[0].parent == idxs[i].parent && idxs[i].index - indexes[0].index == 1) r[i];
 									
 								}];
 								
 							case General: //	`~`
-								var r = [];
 								var idxs = [];
 								
-								for (result in process( object, next, m.bind(_, _, _, _, _, idxs), object.self )) r.push( result );
+								for (result in process( object, next, m.bind(_, _, _, _, _, idxs), object.self )) r.push( cast result );
 								
-								[for (i in 0...r.length) {
+								r = [for (i in 0...r.length) {
 									if (indexes[0].parent == idxs[i].parent && idxs[i].index > indexes[0].index) r[i];
 									
 								}];
 								
 							case _:
-								[];
 								
 						}
 						
-						for (value in part2) results.push( value );
+						for (value in r) results.push( value );
 						
 					}
 					
 				case Pseudo(name, expression):
-						switch name = name.toLowerCase() {
-							case 'scope':
-								var array = (original.is(Array)?original:[original]);
-								for (a in array) results.push( a );
+					//if (isArray) passable = true;
+					switch name = name.toLowerCase() {
+						case 'scope':
+							var array = (original.is(Array)?original:[original]);
+							for (a in array) results.push( a );
+							
+						case 'root':
+							if (isObject) if (object.self == original) method( '', -1, object.self, object.self, results );
+							
+						case 'only-child', 'only-of-type':
+							if (object.keys().length == 1) results.push( object.get( object.keys()[0] ) );
+							
+						case 'first-child', 'first-of-type':
+							results.push( object.get( object.keys()[0] ) );
+							
+						case 'last-child', 'last-of-type':
+							results.push( object.get( object.keys()[object.keys().length -1] ) );
+							
+						case 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type':
+							// @see https://www.w3.org/TR/css3-selectors/#nth-child-pseudo
+							var r = name.indexOf('-l') > - 1;
+							var t = nthEngine.toTokens( ByteData.ofString( expression ), 'jsonquery-nth' );
+							
+							switch t {
+								case Index(b):
+									results.push( object.get( object.keys()[!r ? b-1 : object.keys().length - b] ) );
 								
-							case 'root':
-								if (isObject) if (object.self == original) method( '', -1, object.self, object.self, results );
-								
-							case 'first-child':
-								if (!isArray) {
-									for (value in nthChild( object, 0, 1 )) results.push( value );
+								case Notation(a, b, isNegative):
+									for (value in nthChild( object, a, b, r, isNegative )) results.push( value );
 									
-								} else {
-									var v:Array<DynamicAccess<Any>> = cast object;
-									results.push( cast v[0] );
+								case _:
 									
-								}
-								
-							case 'last-child':
-								if (!isArray) {
-									for (value in nthChild( object, 0, 1, true )) results.push( value );
-									
-								} else {
-									var v:Array<DynamicAccess<Any>> = cast object;
-									results.push( cast v[v.length - 1] );
-									
-								}
-								
-							case 'nth-child', 'nth-last-child':
-								// @see https://www.w3.org/TR/css3-selectors/#nth-child-pseudo
-								var r = name.indexOf('last') > - 1;
-								var token = nthEngine.toTokens( ByteData.ofString( expression ), 'jsonquery-nth' );
-								//trace(token);
-								switch token {
-									case Index(b):
-										results.push( object.get( object.keys()[!r ? b-1 : object.keys().length - b] ) );
-									
-									case Notation(a, b, isNegative):
-										var values = nthChild( object, a, b, r, isNegative );
-										for (value in values) results.push( value );
-										
-									case _:
-										
-								}
-								
-							case 'has', 'not':	// TODO test `:not`
+							}
+							
+						case 'has', 'not':	// TODO test `:not`
 								var expression = expression.parse();
 								var method = function(p, c, r) {
 									r.push(p);
@@ -443,12 +443,12 @@ class JsonQuery {
 								trace( matches );
 								
 								if (condition(matches)) results.push( object );
-								
-							case _:
-						}
+							
+						case _:
+					}
 					
 				case Attribute(name, type, value):
-					if (isArray) passable = true;
+					///*if (isArray)*/ passable = true;
 					if (isObject && object.exists( cast name )) {
 						var val = object.get( cast name );
 						var isValObject = val.typeof().match(TObject);

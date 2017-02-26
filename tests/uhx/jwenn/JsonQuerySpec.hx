@@ -392,4 +392,92 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.c], '' + results );
 	}
 	
+	public function testPseudo_nthOfType() {
+		var data = { a:'1', b:2, c:'3' };
+		var results = JsonQuery.find( data, 'int:nth-of-type(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.b], '' + results );
+	}
+	
+	public function testPseudo_nthLastOfType() {
+		var data = { a:'1', b:2, c:'3', d:4 };
+		var results = JsonQuery.find( data, 'int:nth-last-of-type(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.d], '' + results );
+	}
+	
+	public function testPseudo_lastChild() {
+		var data = { a:'1', b:2, c:'3', d:4 };
+		var results = JsonQuery.find( data, ':last-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.d], '' + results );
+	}
+	
+	public function testPseudo_firstChild() {
+		var data = { a:'1', b:2, c:'3', d:4 };
+		var results = JsonQuery.find( data, ':first-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_firstOfType() {
+		var data = { a:'1', b:2, c:'3', d:4 };
+		var results = JsonQuery.find( data, 'int:first-of-type' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.b], '' + results );
+	}
+	
+	public function testPseudo_lastOfType() {
+		var data = { a:'1', b:2, c:'3', d:4 };
+		var results = JsonQuery.find( data, 'string:last-of-type' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.c], '' + results );
+	}
+	
+	public function testPseudo_multiple1() {
+		var data = { a:1 };
+		var results = JsonQuery.find( data, ':first-child:last-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_multiple2() {
+		var data = { a:1 };
+		var results = JsonQuery.find( data, ':nth-of-type(1):nth-last-of-type(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_onlyChild() {
+		var data = { a:1 };
+		var results = JsonQuery.find( data, ':only-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_onlyChild_nested() {
+		var data = { a:1, b:{ c:2 }, d:3 };
+		var results = JsonQuery.find( data, ':only-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.b.c], '' + results );
+	}
+	
+	public function testPseudo_onlyOfType() {
+		var data = { a:1, b:'2' };
+		var results = JsonQuery.find( data, 'int:only-of-type' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data.a], '' + results );
+	}
+	
 }
