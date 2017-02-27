@@ -221,10 +221,6 @@ class JsonQuery {
 		return s;
 	}
 	
-	private static function exact(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
-		results.push( value );
-	}
-	
 	private static function matched(key:Key, index:Index, value:Value, parent:Parent, results:Results):Void {
 		if (results.indexOf( parent ) == -1) results.push( parent );
 	}
@@ -587,7 +583,6 @@ class JsonQuery {
 		//trace( a, b, a+0+b,'neg = $neg', 'reverse = $reverse', length );
 		
 		for (n in 0...length) {
-			var n = n;
 			var idx = (a * (neg ? -n : n)) + b;
 			idx--;
 			//trace( 'a = $a', 'n = ' +(neg ? -n : n), 'b = $b', 'calc = ' + (a * (neg ? -n : n)), 'idx = $idx'  );
