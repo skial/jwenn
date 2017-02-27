@@ -186,16 +186,16 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [x] `:only-child`
 - [x] `:only-of-type`
 - [/] `:empty`
-- [ ] `:not(selector)`
-# Level 4 - http://dev.w3.org/csswg/selectors4/
+- [x] `:not(selector)`
+# Level 4 - https://www.w3.org/TR/selectors4/
 - [ ] `:matches`
-- [ ] `:has`
+- [o] `:has`
 - [ ] `:any-link`
-- [ ] `:scope`
+- [o] `:scope`
 - [-] `:drop`
-- [ ] `:current`
-- [ ] `:past`
-- [ ] `:future`
+- [-] `:current`
+- [-] `:past`
+- [-] `:future`
 - [-] `:read-only`
 - [-] `:read-write`
 - [-] `:placeholder-shown`
@@ -217,6 +217,7 @@ class JsonQuery {
 	
 	private static inline function parse(selector:String):CssSelectors {
 		var s = new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
+		//trace( s );
 		return s;
 	}
 	
@@ -400,8 +401,7 @@ class JsonQuery {
 					//if (isArray) passable = true;
 					switch name = name.toLowerCase() {
 						case 'scope':
-							var array = (original.is(Array)?original:[original]);
-							for (a in array) results.push( a );
+							method( -1, cast '', parent, parent, results );
 							
 						case 'root':
 							if (isObject) if (object.self == original) method( '', -1, object.self, object.self, results );
@@ -431,20 +431,48 @@ class JsonQuery {
 									
 							}
 							
-						case 'has', 'not':	// TODO test `:not`
-								var expression = expression.parse();
-								var method = function(p, c, r) {
-									r.push(p);
+						case 'has', 'not':
+								// @see https://www.w3.org/TR/css3-selectors/#negation
+								var _values = [];
+								var indexes = [];
+								
+								switch name.charCodeAt(0) {
+									case 'n'.code: 	// not
+										var skip = false;
+										var position = 0;
+										_values = process( object, expression.parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
+										
+										for (i in 0...object.keys().length) {
+											if (position < indexes.length) for (pos in position...indexes.length) {
+												if (skip = (indexes[pos].index == i)) {
+													position = pos;
+													
+												}
+												
+											}
+											
+											if (skip) continue;
+											
+											var key = object.keys()[i];
+											method( i, cast key, object.get( key ), parent, results );
+											
+										}
+										
+									case 'h'.code: 	// has
+										_values = process( object, (':scope $expression').parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
+										
+										if (_values.length > 0) if (object.self == indexes[0].parent) {
+											method( -1, cast '', object.self, parent, results );
+											
+										}
+										
+									case _:
+										
 									
-								};
-								var matches = process( object, expression, JsonQuery.matched, parent );
-								var condition = name == 'has' ? function(v) return v.length > 0 : function(v) return v.length == 0;
-								
-								trace( matches );
-								
-								if (condition(matches)) results.push( object );
+								}
 							
 						case _:
+							
 					}
 					
 				case Attribute(name, type, value):

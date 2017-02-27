@@ -480,4 +480,20 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.a], '' + results );
 	}
 	
+	public function testPseudo_notClass() {
+		var data = { a:1, b:'2', c:3 };
+		var results = JsonQuery.find( data, ':not(.a)' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + ([data.b, data.c]:Array<Any>), '' + results );
+	}
+	
+	public function testPseudo_hasClass() {
+		var data = { a:1, b:{ c:'hey' }, d:3 };
+		var results = JsonQuery.find( data, ':has(.c)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [data], '' + results );
+	}
+	
 }
