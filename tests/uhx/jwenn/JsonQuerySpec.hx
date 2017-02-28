@@ -492,8 +492,81 @@ class JsonQuerySpec {
 		var data = { a:1, b:{ c:'hey' }, d:3 };
 		var results = JsonQuery.find( data, ':has(.c)' );
 		
-		Assert.equals( 1, results.length );
-		Assert.equals( '' + [data], '' + results );
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + ([data, data.b]:Array<Any>), '' + results );
+	}
+	
+	public function testJsonObject_arrayObjects() {
+		var data = { a:[{b:1}, {b:2}, {b:3}] };
+		var results = JsonQuery.find( data, '[b]' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + [data.a[0], data.a[1], data.a[2]], '' + results );
+	}
+	
+	public function testJsonObject_arrayNestedObjects() {
+		var data = { a:[{b:{c:1}}, {b:{c:2}}, {b:{c:3}}] };
+		var results = JsonQuery.find( data, '[c]' );
+		
+		Assert.equals( 3, results.length );
+	}
+	
+	public function testJsonObject_arrayHasObjects() {
+		var data = { a:[{b:1}, {b:2}, {b:3}] };
+		var results = JsonQuery.find( data, '.a :has([b])' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + ([data.a[0], data.a[1], data.a[2]]:Array<Any>), '' + results );
+	}
+	
+	public function testJsonObject_arrayHasNestedObjects() {
+		var data = { a:[{b:{c:1}}, {b:{c:2}}, {b:{c:3}}] };
+		var results = JsonQuery.find( data, '.a :has(.b [c])' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + [data.a[0], data.a[1], data.a[2]], '' + results );
+	}
+	
+	public function testJsonObject_complex() {
+		var data = {
+			objects: [
+				{
+					fullname:{
+						last:'smith',
+						first:'bob'
+					}
+				},
+				{
+					fullname:{
+						last:'bar',
+						first:'foo'
+					}
+				},
+				{
+					fullname:{
+						last:'baz',
+						first:'foo'
+					}
+				}
+			],
+			lastnames:['smith', 'bar', 'baz'],
+		}
+		
+		var lastnames = JsonQuery.find( data, '.lastnames' );
+		trace( lastnames );
+		Assert.equals( 3, lastnames.length );
+		
+		for (i in 0...lastnames.length) {
+			var lastname = lastnames[i];
+			//trace( lastname );
+			var selector = '.objects :has([last="$lastname"])';
+			var object = JsonQuery.find( data, selector );
+			//trace( selector, object );
+			Assert.equals( 1, object.length );
+			Assert.equals( '' + [data.objects[i]], '' + object );
+			
+		}
+		
 	}
 	
 }

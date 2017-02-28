@@ -187,7 +187,7 @@ private typedef Indexes = Array<{key:Key, parent:Parent, index:Index}>;
 - [x] `:only-of-type`
 - [/] `:empty`
 - [x] `:not(selector)`
-# Level 4 - https://www.w3.org/TR/selectors4/
+# Level 4 - https://drafts.csswg.org/selectors/
 - [ ] `:matches`
 - [o] `:has`
 - [ ] `:any-link`
@@ -332,10 +332,13 @@ class JsonQuery {
 					var m = JsonQuery.track.bind(_, _, _, _, _, _, method);
 					// Browser css selectors are read from `right` to `left`, but this isnt a browser.
 					var part1 = process( object, current, m.bind(_, _, _, _, _, indexes), parent );
-					
+					//trace( part1, part1[0].typeof().match(TObject), part1[0].is(Array) );
 					if (part1.length != 0) {
 						var invoke:Method->Array<Any>->Void = if (part1[0].typeof().match(TObject)) {	// Don't assume every value returned is an object. BREAK POINT
 							function (m:Method, r:Array<Any>) for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, m, parent )) r.push( result );
+							
+						} else if(part1[0].is(Array)) {
+							function(m:Method, r:Array<Any>) for (value in part1) for (v in (cast value:Array<Any>)) for (result in process( cast DA.fromDynamicAccess(v), next, m, parent )) r.push( result );
 							
 						} else {
 							function(m:Method, r:Array<Any>) for (result in process( cast DA.fromArray(part1), next, m, parent )) r.push( result );
@@ -455,12 +458,16 @@ class JsonQuery {
 										}
 										
 									case 'h'.code: 	// has
-										_values = process( object, (':scope $expression').parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
-										
-										if (_values.length > 0) if (object.self == indexes[0].parent) {
+										// TODO Spec states `:scope` should be prefixed with a space ` `, Descendant combinator, to the `expression`.
+										_values = process( object, expression.parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
+										/*trace( ':scope $expression' );
+										trace( object.self );
+										trace( _values );
+										trace( indexes );*/
+										/*if (_values.length > 0) if (object.self == indexes[0].parent) {
 											method( -1, cast '', object.self, parent, results );
 											
-										}
+										}*/if (_values.length > 0) method( -1, cast '', object.self, parent, results );
 										
 									case _:
 										
@@ -558,7 +565,7 @@ class JsonQuery {
 				
 				if (isArray || isObject) {
 					var da:DA<Any, Dynamic, Array<Any>> = isArray ? cast DA.fromArray(asArray) : isObject ? cast DA.fromDynamicAccess(cast o) : cast DA.fromDynamic(cast o);
-					
+					//trace( isArray,  isObject, o, token );
 					for (result in process( da, token, method, object.self ) ) {
 						results.push( cast result );
 						
