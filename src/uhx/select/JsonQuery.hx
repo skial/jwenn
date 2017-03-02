@@ -277,7 +277,7 @@ class JsonQuery {
 				case CssSelectors.Type(_.toLowerCase() => name):
 						passable = true;
 						var value:Any = null;
-						if (isObject) for (i in 0...object.keys().length) {
+						/*if (isObject) */for (i in 0...object.keys().length) {
 							var key = object.keys()[i];
 							
 							switch [name, (value = object.get(key)).typeof()] {

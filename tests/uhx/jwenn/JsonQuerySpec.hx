@@ -73,6 +73,14 @@ class JsonQuerySpec {
 		Assert.equals( '' + ['b', 'c'], '' + results );
 	}
 	
+	public function testType_arrayValue() {
+		var data = ([1, 2, 'a', 'b', 3]:Array<Any>);
+		var results = JsonQuery.find( data, 'int' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + [1, 2, 3,], '' + results );
+	}
+	
 	public function testType_nestedConstValues() {
 		var data = { 
 			a:{ 
@@ -689,7 +697,7 @@ class JsonQuerySpec {
 		}
 		
 		var lastnames = JsonQuery.find( data, '.lastnames' );
-		trace( lastnames );
+		//trace( lastnames );
 		Assert.equals( 3, lastnames.length );
 		
 		for (i in 0...lastnames.length) {
