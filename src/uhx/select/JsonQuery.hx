@@ -243,7 +243,7 @@ class JsonQuery {
 		if (selectors == null) return results;
 		
 		engine.original = object;
-		results = engine.process( cast DA.fromDynamic(object), selectors, found, object );
+		results = engine.process( object.is(Array) ? cast DA.fromArray(object) : cast DA.fromDynamic(object), selectors, found, object );
 		engine.original = null;
 		
 		// This doesnt seem right...
@@ -332,13 +332,17 @@ class JsonQuery {
 					var m = JsonQuery.track.bind(_, _, _, _, _, _, method);
 					// Browser css selectors are read from `right` to `left`, but this isnt a browser.
 					var part1 = process( object, current, m.bind(_, _, _, _, _, indexes), parent );
-					//trace( part1, part1[0].typeof().match(TObject), part1[0].is(Array) );
+					
+					// This is getting out of hand.
 					if (part1.length != 0) {
 						var invoke:Method->Array<Any>->Void = if (part1[0].typeof().match(TObject)) {	// Don't assume every value returned is an object. BREAK POINT
 							function (m:Method, r:Array<Any>) for (value in part1) for (result in process( cast DA.fromDynamicAccess(value), next, m, parent )) r.push( result );
 							
-						} else if(part1[0].is(Array)) {
+						} else if(part1[0].is(Array) && (cast part1[0]:Array<Any>)[0].typeof().match(TObject)) {
 							function(m:Method, r:Array<Any>) for (value in part1) for (v in (cast value:Array<Any>)) for (result in process( cast DA.fromDynamicAccess(v), next, m, parent )) r.push( result );
+							
+						} else if(part1[0].is(Array)) {
+							function(m:Method, r:Array<Any>) for (value in (cast part1:Array<Any>)) for (result in process( cast DA.fromArray(value), next, m, parent )) r.push( result );
 							
 						} else {
 							function(m:Method, r:Array<Any>) for (result in process( cast DA.fromArray(part1), next, m, parent )) r.push( result );

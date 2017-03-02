@@ -18,6 +18,14 @@ class JsonQuerySpec {
 		Assert.equals( '' + data, '' + results[0] );
 	}
 	
+	public function testUniveral_arrayValue() {
+		var data = ['a', 'b'];
+		var results = JsonQuery.find( data, '*' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + data, '' + results );
+	}
+	
 	public function testUniveral_nestedStruct() {
 		var data = { a:{ b:{ c:[1, 2, 3] }, d:[4, 5, 6] } };
 		var results = JsonQuery.find( data, '*' );
@@ -312,12 +320,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + data.c, '' + results[0] );
 	}
 	
+	public function testPseudo_nthChild_everyThirdItem_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(3n+3)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data[2], '' + results[0] );
+	}
+	
 	public function testPseudo_nthChild_everyThirdItem_simple() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-child(3n)' );
 		
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + data.c, '' + results[0] );
+	}
+	
+	public function testPseudo_nthChild_everyThirdItem_simple_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(3n)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + data[2], '' + results[0] );
 	}
 	
 	public function testPseudo_nthChild_everyItem_reversed() {
@@ -328,12 +352,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.c, data.b, data.a], '' + results );
 	}
 	
+	public function testPseudo_nthChild_everyItem_reversed_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(-n+3)' );
+		
+		Assert.equals( 3, results.length );
+		Assert.equals( '' + [3, 2, 1], '' + results );
+	}
+	
 	public function testPseudo_nthChild_odd() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-child(odd)' );
 		
 		Assert.equals( 2, results.length );
 		Assert.equals( '' + [data.a, data.c], '' + results );
+	}
+	
+	public function testPseudo_nthChild_odd_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(odd)' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + [1, 3], '' + results );
 	}
 	
 	public function testPseudo_nthChild_even() {
@@ -344,12 +384,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + data.b, '' + results[0] );
 	}
 	
+	public function testPseudo_nthChild_even_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(even)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '2', '' + results[0] );
+	}
+	
 	public function testPseudo_nthChild_first() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-child(1)' );
 		
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + data.a, '' + results[0] );
+	}
+	
+	public function testPseudo_nthChild_first_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [1], '' + results );
 	}
 	
 	public function testPseudo_nthChild_lastTwo() {
@@ -360,12 +416,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.b, data.c], '' + results );
 	}
 	
+	public function testPseudo_nthChild_lastTwo_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(n+2)' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + [2, 3], '' + results );
+	}
+	
 	public function testPseudo_nthChild_firstTwo() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-child(-n+2)' );
 		
 		Assert.equals( 2, results.length );
 		Assert.equals( '' + [data.b, data.a], '' + results );
+	}
+	
+	public function testPseudo_nthChild_firstTwo_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-child(-n+2)' );
+		
+		Assert.equals( 2, results.length );
+		Assert.equals( '' + [2, 1], '' + results );
 	}
 	
 	public function testPseudo_nthLastChild_last() {
@@ -376,6 +448,14 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.c], '' + results );
 	}
 	
+	public function testPseudo_nthLastChild_last_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-last-child(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [3], '' + results );
+	}
+	
 	public function testPseudo_nthLastChild_lastComplex() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-last-child(0n+1)' );
@@ -384,12 +464,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.c], '' + results );
 	}
 	
+	public function testPseudo_nthLastChild_lastComplex_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-last-child(0n+1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [3], '' + results );
+	}
+	
 	public function testPseudo_nthLastChild_lastComplex_negative() {
 		var data = { a:1, b:2, c:3 };
 		var results = JsonQuery.find( data, ':nth-last-child(-0n+1)' );
 		
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + [data.c], '' + results );
+	}
+	
+	public function testPseudo_nthLastChild_lastComplex_negative_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':nth-last-child(-0n+1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [3], '' + results );
 	}
 	
 	public function testPseudo_nthOfType() {
@@ -416,12 +512,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.d], '' + results );
 	}
 	
+	public function testPseudo_lastChild_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':last-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [3], '' + results );
+	}
+	
 	public function testPseudo_firstChild() {
 		var data = { a:'1', b:2, c:'3', d:4 };
 		var results = JsonQuery.find( data, ':first-child' );
 		
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_firstChild_array() {
+		var data = [1, 2, 3];
+		var results = JsonQuery.find( data, ':first-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [1], '' + results );
 	}
 	
 	public function testPseudo_firstOfType() {
@@ -448,6 +560,14 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.a], '' + results );
 	}
 	
+	public function testPseudo_multiple1_array() {
+		var data = [1];
+		var results = JsonQuery.find( data, ':first-child:last-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [1], '' + results );
+	}
+	
 	public function testPseudo_multiple2() {
 		var data = { a:1 };
 		var results = JsonQuery.find( data, ':nth-of-type(1):nth-last-of-type(1)' );
@@ -456,12 +576,28 @@ class JsonQuerySpec {
 		Assert.equals( '' + [data.a], '' + results );
 	}
 	
+	public function testPseudo_multiple2_array() {
+		var data = [1];
+		var results = JsonQuery.find( data, ':nth-of-type(1):nth-last-of-type(1)' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [1], '' + results );
+	}
+	
 	public function testPseudo_onlyChild() {
 		var data = { a:1 };
 		var results = JsonQuery.find( data, ':only-child' );
 		
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + [data.a], '' + results );
+	}
+	
+	public function testPseudo_onlyChild_array() {
+		var data = [1];
+		var results = JsonQuery.find( data, ':only-child' );
+		
+		Assert.equals( 1, results.length );
+		Assert.equals( '' + [1], '' + results );
 	}
 	
 	public function testPseudo_onlyChild_nested() {
