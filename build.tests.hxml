@@ -7,6 +7,7 @@
 -dce full
 #--no-inline
 -debug
+-D analyzer-optimize
 
 --each
 
