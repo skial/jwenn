@@ -217,7 +217,6 @@ class JsonQuery {
 	
 	private static inline function parse(selector:String):CssSelectors {
 		var s = new SelectorParser().toTokens( ByteData.ofString( selector ), 'json-selector' );
-		//trace( s );
 		return s;
 	}
 	
@@ -356,8 +355,6 @@ class JsonQuery {
 								switch token {
 									case Combinator(Pseudo(_, _), Pseudo(_, _), _) | Combinator(Attribute(_, _, _), Attribute(_, _, _), _):
 										var results = process( object, next, method, parent );
-										/*trace( current, next );
-										trace( part1, results );*/
 										for (result in results) if (part1.indexOf(result) > -1) r.push( cast result );
 										
 									case _:
@@ -401,7 +398,6 @@ class JsonQuery {
 					}
 					
 				case Pseudo(name, expression):
-					//if (isArray) passable = true;
 					switch name = name.toLowerCase() {
 						case 'scope':
 							method( -1, cast '', parent, parent, results );
@@ -464,14 +460,7 @@ class JsonQuery {
 									case 'h'.code: 	// has
 										// TODO Spec states `:scope` should be prefixed with a space ` `, Descendant combinator, to the `expression`.
 										_values = process( object, expression.parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
-										/*trace( ':scope $expression' );
-										trace( object.self );
-										trace( _values );
-										trace( indexes );*/
-										/*if (_values.length > 0) if (object.self == indexes[0].parent) {
-											method( -1, cast '', object.self, parent, results );
-											
-										}*/if (_values.length > 0) method( -1, cast '', object.self, parent, results );
+										if (_values.length > 0) method( -1, cast '', object.self, parent, results );
 										
 									case _:
 										
@@ -483,7 +472,6 @@ class JsonQuery {
 					}
 					
 				case Attribute(name, type, value):
-					///*if (isArray)*/ passable = true;
 					if (isObject && object.exists( cast name )) {
 						var val = object.get( cast name );
 						var isValObject = val.typeof().match(TObject);
@@ -569,7 +557,7 @@ class JsonQuery {
 				
 				if (isArray || isObject) {
 					var da:DA<Any, Dynamic, Array<Any>> = isArray ? cast DA.fromArray(asArray) : isObject ? cast DA.fromDynamicAccess(cast o) : cast DA.fromDynamic(cast o);
-					//trace( isArray,  isObject, o, token );
+					
 					for (result in process( da, token, method, object.self ) ) {
 						results.push( cast result );
 						

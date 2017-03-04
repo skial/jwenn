@@ -697,15 +697,15 @@ class JsonQuerySpec {
 		}
 		
 		var lastnames = JsonQuery.find( data, '.lastnames' );
-		//trace( lastnames );
+		
 		Assert.equals( 3, lastnames.length );
 		
 		for (i in 0...lastnames.length) {
 			var lastname = lastnames[i];
-			//trace( lastname );
+			
 			var selector = '.objects :has([last="$lastname"])';
 			var object = JsonQuery.find( data, selector );
-			//trace( selector, object );
+			
 			Assert.equals( 1, object.length );
 			Assert.equals( '' + [data.objects[i]], '' + object );
 			
