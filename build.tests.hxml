@@ -1,12 +1,14 @@
 -cp src
 -cp tests
 
+-lib ne
+-lib mo-css
 -lib jwenn
 
 -main Main
 -dce full
 #--no-inline
--debug
+#-debug
 -D analyzer-optimize
 
 --each
@@ -16,3 +18,11 @@
 --next
 
 -js bin/spec.js
+
+#--next
+
+#-python bin/py/spec.py
+
+#--next
+
+#-cs bin/cs

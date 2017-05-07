@@ -1,11 +1,11 @@
 package uhx.select;
 
 import byte.ByteData;
+import uhx.mo.css.Lexer;
 import haxe.DynamicAccess;
-import uhx.parser.NthExpression;
-import uhx.lexer.Css as CssLexer;
-import uhx.lexer.Css.CssSelectors;
-import uhx.parser.Selector as SelectorParser;
+import uhx.mo.css.Lexer.CssSelectors;
+import uhx.mo.nth.Parser as NthExpression;
+import uhx.mo.selectors.Parser as SelectorParser;
 
 using Std;
 using Type;
@@ -417,7 +417,7 @@ class JsonQuery {
 						case 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type':
 							// @see https://www.w3.org/TR/css3-selectors/#nth-child-pseudo
 							var r = name.indexOf('-l') > - 1;
-							var t = nthEngine.toTokens( ByteData.ofString( expression ), 'jsonquery-nth' );
+							var t = (cast expression:NthExpressions);//nthEngine.toTokens( ByteData.ofString( expression ), 'jsonquery-nth' );
 							
 							switch t {
 								case Index(b):
@@ -439,7 +439,7 @@ class JsonQuery {
 									case 'n'.code: 	// not
 										var skip = false;
 										var position = 0;
-										_values = process( object, expression.parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
+										_values = process( object, (cast expression:CssSelectors), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
 										
 										for (i in 0...object.keys().length) {
 											if (position < indexes.length) for (pos in position...indexes.length) {
@@ -459,7 +459,7 @@ class JsonQuery {
 										
 									case 'h'.code: 	// has
 										// TODO Spec states `:scope` should be prefixed with a space ` `, Descendant combinator, to the `expression`.
-										_values = process( object, expression.parse(), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
+										_values = process( object, (cast expression:CssSelectors), JsonQuery.track.bind(_, _, _, _, _, indexes, JsonQuery.found), parent );
 										if (_values.length > 0) method( -1, cast '', object.self, parent, results );
 										
 									case _:

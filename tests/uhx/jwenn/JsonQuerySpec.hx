@@ -3,8 +3,7 @@ package uhx.jwenn;
 import uhx.select.*;
 import utest.Assert;
 
-@:keep
-class JsonQuerySpec {
+@:keep class JsonQuerySpec {
 	
 	public function new() {
 		
