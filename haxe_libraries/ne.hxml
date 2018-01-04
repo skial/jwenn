@@ -1,0 +1,7 @@
+# @install: lix --silent download "https://github.com/skial/ne/archive/dda04725dacccc976650e61b453a56d811327bfe.tar.gz" into ne/0.0.1-alpha/github/dda04725dacccc976650e61b453a56d811327bfe
+-D ne=0.0.1-alpha
+-cp ${HAXESHIM_LIBCACHE}/ne/0.0.1-alpha/github/dda04725dacccc976650e61b453a56d811327bfe/src
+--macro allowPackage('js')
+
+-lib mo
+#-lib jwenn

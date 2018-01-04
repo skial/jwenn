@@ -1,16 +1,18 @@
 package uhx.select.html;
 
-import dtx.mo.NodeList;
-import haxe.CallStack;
+import uhx.ne.Node;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
-import dtx.mo.DOMNode;
+//import dtx.mo.DOMNode;
+import haxe.CallStack;
+import uhx.ne.NodeList;
+//import dtx.mo.NodeList;
 import haxe.ds.StringMap;
-import uhx.lexer.Css;
-import uhx.lexer.Css as CssLexer;
-import uhx.lexer.Html;
-import uhx.lexer.Html as HtmlLexer;
+import uhx.mo.css.Lexer;
+import uhx.mo.css.Lexer as CssLexer;
+import uhx.mo.html.Lexer;
+import uhx.mo.html.Lexer as HtmlLexer;
 
 using Std;
 using Type;
@@ -155,7 +157,7 @@ class Impl {
 	}
 	
 	public var previous:CssSelectors = null;
-	public var dummyRef:HtmlRef = new HtmlRef('!!IGNORE!!', new StringMap(), [ -1], [], null, true);
+	public var dummyRef:HtmlRef = new HtmlRef('!!IGNORE!!', new StringMap(), [-1], [], null, true);
 	
 	public function new() {
 		
@@ -167,24 +169,24 @@ class Impl {
 	public function process(object:Token<HtmlKeywords>, token:CssSelectors, ?ignore:Bool = false, ?negative:Bool = false, ?scope:Token<HtmlKeywords> = null):Tokens {
 		var ref:HtmlRef = dummyRef;
 		var results:Tokens = [];
-		var children:Null<Tokens> = [];
+		var children:Tokens = [];
 		var condition:Bool = false;
 		var action:Void->Void = function() results.push( object );
 		var parent:Token<HtmlKeywords> = Keyword(Tag(dummyRef));
-		
+		//trace( ignore );
 		switch (object) {
 			case Keyword(Tag(r)):
 				ref = r;
 				parent = r.parent() != null ? r.parent() : Keyword(Tag(dummyRef));
 				if (!ignore) children = r.tokens
-				#if !DISABLE_HTML_SELECT_FILTER
+				/*#if !DISABLE_HTML_SELECT_FILTER
 				.filter( 
-					function(t:DOMNode) {
-						return t.nodeType == NodeType.Element || t.nodeType == NodeType.Document;
+					function(t) {
+						return Node.fromToken(t).nodeType == NodeType.Element || Node.fromToken(t).nodeType == NodeType.Document;
 					}
 				)
-				#end;
-				
+				#end*/;
+				//trace( children );
 			case _:
 				
 		}
@@ -225,7 +227,7 @@ class Impl {
 				
 				if (negative) {
 					// Cast `positives` and `_results` to `NodeList` to use custom `indexOf` methods.
-					for (n in negatives) if ((positives:NodeList).indexOf( n ) == -1 && (_results:NodeList).indexOf( n ) == -1) {
+					for (n in negatives) if ((positives:NodeList<Token<HtmlKeywords>>).indexOf( n ) == -1 && (_results:NodeList<Token<HtmlKeywords>>).indexOf( n ) == -1) {
 						_results.push( n );
 					}
 					
@@ -331,7 +333,7 @@ class Impl {
 						children = null;
 						
 					case 'only-child':
-						condition = (parent:DOMNode).childNodes.length == 1;
+						condition = (parent:Node).childNodes.length == 1;
 						
 					case 'has' if (expression.trim() != ''):
 						CssLexer.scoped = true;
@@ -360,7 +362,7 @@ class Impl {
 						// This section feels completely wrong,
 						// going up a level, then the `nth`ing method.
 						
-						var copy = (parent:DOMNode).childNodes;
+						var copy = Node.fromToken(parent).childNodes;
 						var values = [];
 						var a = 0;
 						var b = 1;
@@ -377,10 +379,11 @@ class Impl {
 						// Filter array of elements by `previous` css token. So
 						// in effect reading the css rule from left to right,
 						// the wrong way in css.
-						copy = nthChild( copy.filter( filterToken.bind(_, previous, scope) ), a, b, name.indexOf('last') > -1 ? true : false, n );
-						
-						if (copy[0] == (object:DOMNode)) {
-							condition = (name.indexOf('only') > -1) ? (object:DOMNode).parentNode.childNodes.length == 1 : true;
+						//copy = nthChild( copy.filter( filterToken.bind(_, previous, scope) ), a, b, name.indexOf('last') > -1 ? true : false, n );
+						var copy = NodeList.fromTokens( nthChild( [for (node in copy) if (filterToken(node, previous, scope)) node.toToken()], a, b, name.indexOf('last') > -1 ? true : false, n ) );
+
+						if (copy[0] == (object:Node)) {
+							condition = (name.indexOf('only') > -1) ? (object:Node).parentNode.childNodes.length == 1 : true;
 						}
 						
 					case _:
@@ -427,12 +430,18 @@ class Impl {
 			case _:
 				
 		}
-		
+		//trace(negative, condition, children != null);
 		if (!negative && condition) action();
 		else if (negative && !condition) results.push( object );
 		
 		if (children != null) {
-			for(child in children) results = results.concat( process( child, token, ignore, negative, scope ) );
+			//trace( children );
+			for(child in children) {
+				//trace( child );
+				results = results.concat( process( child, token, ignore, negative, scope ) );
+
+			}
+
 		}
 		
 		ref = null;
@@ -440,7 +449,7 @@ class Impl {
 		
 		var filtered = [];
 		// There should only ever be one copy of the `object` in the `results`, filter to make sure.
-		for (result in results) if ((filtered:NodeList).indexOf( result ) == -1) filtered.push( result );
+		for (result in results) if (NodeList.fromTokens(filtered).indexOf( result ) == -1) filtered.push( result );
 		
 		return filtered;
 	}
@@ -568,11 +577,12 @@ class Impl {
 				var _filter = filterToken.bind(_, current, scope);
 				
 				for (object in objects) {
-					var lineage = buildLineage( object ).filter( _filter );
+					//var lineage = buildLineage( object ).filter( _filter );
+					var lineage = [for (node in buildLineage( object )) if (_filter(node)) node];
 					
 					// TODO check performance as `==` is `enum.equals(enum)` which is a deep
 					// comparision test.
-					for (ancestor in lineage) if ((object:DOMNode).parentNode == (ancestor:DOMNode)) {
+					for (ancestor in lineage) if ((object:Node).parentNode == (ancestor:Node)) {
 						results.push( object );
 					}
 				}
@@ -581,15 +591,17 @@ class Impl {
 				var _filter = filterToken.bind(_, current, scope);
 				
 				for (object in objects) {
-					var lineage = buildLineage( object );
-					lineage = lineage.filter( _filter );
+					/*var lineage = buildLineage( object );
+					lineage = lineage.filter( _filter );*/
+					var lineage = [for (node in buildLineage( object )) if (_filter(node)) node];
 					if (lineage.length > 0) results.push( object );
 				}
 				
 			case Adjacent:
 				var previous = null;
 				
-				for (target in (objects:Array<DOMNode>)) {
+				for (target in objects) {
+					var target:Node = target;
 					previous = target.previousSibling;
 					
 					if (previous != null && filterToken(previous, current, scope)) {
@@ -602,14 +614,15 @@ class Impl {
 			case General:
 				// Match the `second` element only if it
 				// is preceded by the `first` element.
-				var first:Array<DOMNode> = process( original, current, scope );
-				var second:Array<DOMNode> = objects;
+				var first = NodeList.fromTokens( process( original, current, scope ) );
+				var second = NodeList.fromTokens( objects );
 				
 				// This should probably be hand written as abstracts get inlined.
 				for (f in first) {
 					for (s in second) {
 						var fp = f.parentNode;
-						if (fp.equals(s.parentNode)) {
+						//if (fp.equals(s.parentNode)) {
+						if (fp == s.parentNode) {
 							var fpc = fp.childNodes;
 							var index1 = fpc.indexOf( f );
 							var index2 = fpc.indexOf( s );
@@ -690,7 +703,7 @@ class Impl {
 	 * @param	token	A single Keyword<HtmlKeywords>.
 	 * @return	Array<Keyword<HtmlKeywords>>	An array of parent tokens.
 	 */
-	private static function buildLineage(token:DOMNode):Tokens {
+	private static function buildLineage(token:Node):Array<Node> {
 		var results = [];
 		
 		while (token.parentNode != null) {

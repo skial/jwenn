@@ -2,13 +2,14 @@
 -cp tests
 
 -lib ne
+-lib mo-html
 -lib mo-css
--lib jwenn
+#-lib jwenn
 
--main Main
+-debug
 -dce full
+-main Main
 #--no-inline
-#-debug
 -D analyzer-optimize
 
 --each

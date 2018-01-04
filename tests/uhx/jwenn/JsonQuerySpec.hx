@@ -510,6 +510,23 @@ import utest.Assert;
 		Assert.equals( 1, results.length );
 		Assert.equals( '' + [data.d], '' + results );
 	}
+
+	public function testPseudo_classNthChild() {
+		var data = { a: [1, 2, 3, 4, 5], b:'false' };
+		var results:Array<Int> = cast JsonQuery.find( data, '.a :nth-child(-n+2)' );
+		
+		Assert.equals( 2, (results:Array<Int>).length );
+		for (r in results) switch r {
+			case 1:
+				Assert.equals( 1, r );
+
+			case 2:
+				Assert.equals( 2, r );
+
+			case _:
+				Assert.fail('Value was $r.');
+		}
+	}
 	
 	public function testPseudo_lastChild() {
 		var data = { a:'1', b:2, c:'3', d:4 };
