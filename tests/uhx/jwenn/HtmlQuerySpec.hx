@@ -50,7 +50,7 @@ using Detox;
 	}
 	
 	public function testUniversal() {
-		var mo:Tokens = DocumentSelector.querySelectorAll( parse( '<html><div class="A"></div><span id="B"></span></html>' )[0], '*' ).self;
+		var mo:Tokens = DocumentSelector.querySelectorAll( parse( '<html><div class="A"></div><span id="B"></span></html>' )[0], '*' );
 		
 		//untyped console.log( mo );
 		

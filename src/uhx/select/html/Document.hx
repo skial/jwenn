@@ -1,11 +1,8 @@
 package uhx.select.html;
 
-import uhx.ne.Node;
 import uhx.mo.Token;
-import uhx.ne.NodeList;
 //import dtx.mo.DOMNode;
 import uhx.mo.html.Lexer;
-import uhx.ne.html.Element;
 import uhx.select.html.Impl;
 //import dtx.mo.DocumentOrElement;
 
@@ -16,12 +13,12 @@ import uhx.select.html.Impl;
 @:access(uhx.select.html.Impl) class Document {
 
 	// Returns the first element that matches `selector`.
-	public static inline function querySelector(document:Element, selector:String):Node {
+	public static inline function querySelector(document:Token<HtmlKeywords>, selector:String):Token<HtmlKeywords> {
 		return uhx.select.html.Document.querySelectorAll(document, selector)[0];
 	}
 	
 	// Returns any element that matches the `selector`.
-	public static function querySelectorAll(document:Element, selector:String):NodeList<Token<HtmlKeywords>> {
+	public static function querySelectorAll(document:Token<HtmlKeywords>, selector:String):Array<Token<HtmlKeywords>> {
 		var results = [];
 		switch ((document:Token<HtmlKeywords>)) {
 			case Keyword(Tag(r)):

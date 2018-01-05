@@ -1,7 +1,7 @@
 -cp src
 -cp tests
 
--lib ne
+#-lib ne
 -lib mo-html
 -lib mo-css
 #-lib jwenn

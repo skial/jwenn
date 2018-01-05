@@ -1,12 +1,12 @@
 package uhx.select.html;
 
-import uhx.ne.Node;
+//import uhx.ne.Node;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
 //import dtx.mo.DOMNode;
 import haxe.CallStack;
-import uhx.ne.NodeList;
+//import uhx.ne.NodeList;
 //import dtx.mo.NodeList;
 import haxe.ds.StringMap;
 import uhx.mo.css.Lexer;
@@ -225,7 +225,7 @@ class Impl {
 					if (negative) negatives = negatives.concat( process( object, selector, ignore, true, scope ) );
 				}
 				
-				if (negative) {
+				/*if (negative) {//TODO Nodelist.indexof is empty in both implementations.
 					// Cast `positives` and `_results` to `NodeList` to use custom `indexOf` methods.
 					for (n in negatives) if ((positives:NodeList<Token<HtmlKeywords>>).indexOf( n ) == -1 && (_results:NodeList<Token<HtmlKeywords>>).indexOf( n ) == -1) {
 						_results.push( n );
@@ -236,10 +236,10 @@ class Impl {
 					// Prevents the current `object` from being added to the `results`.
 					negative = false;
 					
-				} else {
+				} else {*/
 					results = results.concat( positives );
 					
-				}
+				//} //TODO
 				
 			case Combinator(current, next, type):
 				// CSS selectors are read from `right` to `left`
@@ -333,7 +333,11 @@ class Impl {
 						children = null;
 						
 					case 'only-child':
-						condition = (parent:Node).childNodes.length == 1;
+						//condition = (parent:Node).childNodes.length == 1;
+						condition = switch parent {
+							case Keyword(Tag({tokens:tokens})): tokens.length == 1;
+							case _: false;
+						}
 						
 					case 'has' if (expression.trim() != ''):
 						CssLexer.scoped = true;
@@ -362,7 +366,11 @@ class Impl {
 						// This section feels completely wrong,
 						// going up a level, then the `nth`ing method.
 						
-						var copy = Node.fromToken(parent).childNodes;
+						//var copy = Node.fromToken(parent).childNodes;
+						var copy = switch parent {
+							case Keyword(Tag({tokens:tokens})): tokens;
+							case _: [];
+						}
 						var values = [];
 						var a = 0;
 						var b = 1;
@@ -380,10 +388,16 @@ class Impl {
 						// in effect reading the css rule from left to right,
 						// the wrong way in css.
 						//copy = nthChild( copy.filter( filterToken.bind(_, previous, scope) ), a, b, name.indexOf('last') > -1 ? true : false, n );
-						var copy = NodeList.fromTokens( nthChild( [for (node in copy) if (filterToken(node, previous, scope)) node.toToken()], a, b, name.indexOf('last') > -1 ? true : false, n ) );
+						//var copy = NodeList.fromTokens( nthChild( [for (node in copy) if (filterToken(node, previous, scope)) node.toToken()], a, b, name.indexOf('last') > -1 ? true : false, n ) );
+						var copy = nthChild( [for (node in copy) if (filterToken(node, previous, scope)) node], a, b, name.indexOf('last') > -1 ? true : false, n );
 
-						if (copy[0] == (object:Node)) {
-							condition = (name.indexOf('only') > -1) ? (object:Node).parentNode.childNodes.length == 1 : true;
+						//if (copy[0] == (object:Node)) {
+						if (copy[0] == object) {
+							//condition = (name.indexOf('only') > -1) ? (object:Node).parentNode.childNodes.length == 1 : true;
+							condition = (name.indexOf('only') > -1) ? switch object {
+								case Keyword(Tag({tokens:tokens})): tokens.length == 1;
+								case _: false;
+							} : true;
 						}
 						
 					case _:
@@ -449,7 +463,8 @@ class Impl {
 		
 		var filtered = [];
 		// There should only ever be one copy of the `object` in the `results`, filter to make sure.
-		for (result in results) if (NodeList.fromTokens(filtered).indexOf( result ) == -1) filtered.push( result );
+		//for (result in results) if (NodeList.fromTokens(filtered).indexOf( result ) == -1) filtered.push( result );
+		for (result in results) if (filtered.indexOf( result ) == -1) filtered.push( result );
 		
 		return filtered;
 	}
@@ -582,8 +597,13 @@ class Impl {
 					
 					// TODO check performance as `==` is `enum.equals(enum)` which is a deep
 					// comparision test.
-					for (ancestor in lineage) if ((object:Node).parentNode == (ancestor:Node)) {
+					/*for (ancestor in lineage) if ((object:Node).parentNode == (ancestor:Node)) {
 						results.push( object );
+					}*/
+					for (ancestor in lineage) switch object {
+						case Keyword(Tag(ref)) if (ref.parent() == ancestor):
+							results.push( object );
+						case _:
 					}
 				}
 				
@@ -600,7 +620,7 @@ class Impl {
 			case Adjacent:
 				var previous = null;
 				
-				for (target in objects) {
+				/*for (target in objects) {
 					var target:Node = target;
 					previous = target.previousSibling;
 					
@@ -609,21 +629,45 @@ class Impl {
 						
 					}
 					
+				}*/
+
+				for (i in 1...objects.length) {
+					var target = objects[i];
+					previous = objects[i-1];
+
+					if (previous != null && filterToken(previous, current, scope)) {
+						results.push( target );
+
+					}
+					
 				}
 				
 			case General:
 				// Match the `second` element only if it
 				// is preceded by the `first` element.
-				var first = NodeList.fromTokens( process( original, current, scope ) );
-				var second = NodeList.fromTokens( objects );
+				/*var first = NodeList.fromTokens( process( original, current, scope ) );
+				var second = NodeList.fromTokens( objects );*/
+				var first = process( original, current, scope );
+				var second = objects;
 				
 				// This should probably be hand written as abstracts get inlined.
 				for (f in first) {
 					for (s in second) {
-						var fp = f.parentNode;
+						//var fp = f.parentNode;
+						var childNodes = [];
+						var fp = switch f {
+							case Keyword(Tag({parent:parent, tokens:tokens})): 
+								childNodes = tokens;
+								parent();
+							case _: null;
+						}
+						var sp = switch s {
+							case Keyword(Tag({parent:parent})): parent();
+							case _: null;
+						}
 						//if (fp.equals(s.parentNode)) {
-						if (fp == s.parentNode) {
-							var fpc = fp.childNodes;
+						if (fp == sp) {
+							var fpc = childNodes;
 							var index1 = fpc.indexOf( f );
 							var index2 = fpc.indexOf( s );
 							
@@ -703,13 +747,27 @@ class Impl {
 	 * @param	token	A single Keyword<HtmlKeywords>.
 	 * @return	Array<Keyword<HtmlKeywords>>	An array of parent tokens.
 	 */
-	private static function buildLineage(token:Node):Array<Node> {
+	private static function buildLineage(token:Token<HtmlKeywords>):Array<Token<HtmlKeywords>> {
 		var results = [];
 		
-		while (token.parentNode != null) {
+		while(true) {
+			switch token {
+				case Keyword(Tag({parent:parent})) if (parent() != null):
+					results.push( token );
+
+				case Keyword(Text({parent:parent})) if (parent() != null):
+					results.push( token );
+				
+				case _:
+					break;
+
+			}
+		}
+
+		/*while (token.parentNode != null) {
 			token = token.parentNode;
 			results.push( token );
-		}
+		}*/
 		
 		return results;
 	}

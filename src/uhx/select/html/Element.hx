@@ -1,9 +1,6 @@
 package uhx.select.html;
 
 import uhx.mo.Token;
-//import dtx.mo.DOMNode;
-import uhx.ne.Node;
-import uhx.ne.NodeList;
 import uhx.mo.html.Lexer;
 import uhx.select.html.Impl;
 
@@ -14,9 +11,9 @@ import uhx.select.html.Impl;
 @:access(uhx.select.html.Impl) class Element {
 
 	// Returns the first descendant of `element` that matches `selector`.
-	public static function querySelector(element:Node, selector:String):Node {
+	public static function querySelector(element:Token<HtmlKeywords>, selector:String):Token<HtmlKeywords> {
 		var results = [];
-		switch element.toToken() {
+		switch element {
 			case Keyword(Tag(r)) if (r.tokens.length > 0):
 				var css = Impl.parse( selector );
 				for (child in r.tokens) {
@@ -34,9 +31,9 @@ import uhx.select.html.Impl;
 	}
 	
 	// Returns all the descendants of `element` that match `selector`.
-	public static function querySelectorAll(element:Node, selector:String):NodeList<Token<HtmlKeywords>> {
+	public static function querySelectorAll(element:Token<HtmlKeywords>, selector:String):Array<Token<HtmlKeywords>> {
 		var results = [];
-		switch element.toToken() {
+		switch element {
 			case Keyword(Tag(r)) if (r.tokens.length > 0):
 				var css = Impl.parse( selector );
 				for (child in r.tokens) {
